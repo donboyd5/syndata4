@@ -49,7 +49,7 @@ assign("last.warning", NULL, envir = baseenv())
 
 
 ```{r libs, include=FALSE}
-source("./r/includes/libraries.r")
+# source("./r/includes/libraries.r")
 source(file.path(PROJHOME, "r/includes", "libraries.r"))
 library("readxl")
 library("knitr")
@@ -61,6 +61,7 @@ library("kableExtra")
 source(file.path(PROJHOME, "r/includes", "globals_system_specific_boyd.r"))
 source(file.path(PROJHOME, "r/includes", "globals_other.r"))
 source(file.path(PROJHOME, "r/includes", "functions_general.r"))
+# source(file.path(PROJHOME, "r/includes", "functions_general.r"))
 
 ```
 
