@@ -11,11 +11,11 @@ getf <- function(fn){
 
 ns <- function(df) {names(df) %>% sort}
 
-s1 <- readRDS(paste0(globals$tc.dir, "synpuf20_lowmatch_wfs_stack.rds"))
+s1 <- readRDS(paste0(globals$tc.dir, "synpuf20_lowmatch_wfs_stack.rds")) # 978021 ftype puf, syn
 s2 <- readRDS(paste0(globals$tc.dir, "lowmatch__output.rds"))
-glimpse(s1) # 978021 
+glimpse(s1) 
 count(s1, ftype) # puf, syn
-glimpse(s2) # 1,796,951 # output
+glimpse(s2) # 1,796,951 # output no ftype
 
 s3 <- read_csv(paste0(globals$synd, "synpuf20_lowmatch_wfs_stack.csv"), 
                col_types = cols(.default= col_double()), 
@@ -23,24 +23,102 @@ s3 <- read_csv(paste0(globals$synd, "synpuf20_lowmatch_wfs_stack.csv"),
 glimpse(s3)
 count(s3, ftype)
 
-
 df_in <- getf(inputfn) # 1,796,951 ftype na
-df_base <- getf(baselinefn) # 1,796,951
-df_ref <- getf(reformfn)
-
-glimpse(df_in)
-count(df_in, ftype)
+df_base <- getf(baselinefn) # 1,796,951 no ftype
+df_ref <- getf(reformfn) # 1,796,951 no ftype
 glimpse(df_base)
-glimpse(df_ref)
+
+# create linker file as we do not have ftype values on these files
+l1 <- df_in %>% 
+  select(ftype, m, rownum, RECID, wfsrecid, wt, wt.wtfs, wt.syn, wt.puf) %>%
+  mutate(row=row_number())
+l1 %>% filter(RECID==1)
+l1 %>% filter(m==1)
+l1 %>%
+  summarise_at(vars(starts_with("wt")), ~sum(is.na(.)))
+count(l1, m)
+
+l2 <- l1 %>%
+  mutate(ftype2=ifelse(is.na(wt.wtfs), "puf", NA))
+# first 163786 records are puf
+# next file is CART
+# last file is rflow
+ftvals <- 
+linker <-  df_in %>% 
+  select(ftype, RECID) %>%
+  mutate(ftype=c(rep("puf", 163786),
+                 rep("cart", 818930),
+                 rep("rflow", 814235)))
+
+df_in2 <- df_in %>%
+  select(-ftype) %>%
+  left_join(linker)
+count(df_in2, ftype, m)
+df_in2 %>%
+  group_by(ftype) %>%
+  summarise(wt=sum(wt))
 
 ns(df_in)
 ns(df_base)
 ns(df_in)
 
+# check file
+mrg <- linker %>%
+  left_join(df_in %>% select(RECID, wt, MARS, XTOT, c00100)) %>%
+  left_join(df_base %>% select(RECID, c05800_base=c05800)) %>%
+  left_join(df_ref %>% select(RECID, c05800_reform=c05800))
 
-bc <- 
+agiranges <- c(-Inf, 0, 25e3, 50e3, 75e3, 100e3, 200e3, 500e3, 1e6, 10e6, Inf)
+mrg2 <- mrg %>%
+  mutate(agirange=cut(c00100, agiranges, right=FALSE),
+         ftype=factor(ftype, levels=c("puf", "cart", "rflow")))
+f <- function(var, wt) sum(var * wt) / 1e9
+msum <- mrg2 %>%
+  group_by(ftype, agirange) %>%
+  summarise(n=n(), nret=sum(wt), 
+            c05800_base=f(c05800_base, wt),
+            c05800_reform=f(c05800_reform, wt)) %>%
+  ungroup
+# add totals across agiranges within filetype
+msum2 <- bind_rows(msum, 
+                   msum %>%
+                     group_by(ftype) %>%
+                     summarise_at(vars(n, nret, starts_with("c05800")), ~sum(.)) %>%
+                     mutate(agirange="total")) %>%
+  mutate(agirange=factor(agirange, levels=c(levels(msum$agirange), "total"))) %>%
+  arrange(ftype, agirange)
 
+msum3 <- msum2 %>%
+  gather(variable, value, -ftype, -agirange) %>%
+  spread(ftype, value) %>%
+  mutate(diff_cart=cart - puf, 
+         diff_rflow=rflow - puf,
+         pdiff_cart=diff_cart / puf * 100,
+         pdiff_rflow=diff_rflow / puf * 100)
 
+var <- "nret"
+mtab <- function(var){
+  msum3 %>%
+    filter(variable==var) %>%
+    kable(digits=c(0, 0, rep(0, 3), rep(1, 2), rep(1, 2)),
+          format.args = list(big.mark=",")) %>%
+    kable_styling(full_width = FALSE)
+}
+ 
+mtab("nret")
+mtab("c05800_base")
+mtab("c05800_reform")
+# how does the tax change do?
+msum2 %>%
+  mutate(diff=c05800_reform - c05800_base,
+         pdiff=diff / c05800_base * 100) %>%
+  gather(variable, value, -ftype, -agirange) %>%
+  filter(variable=="diff") %>%
+  spread(ftype, value) %>%
+  mutate(cart_diff=cart - puf,
+         rflow_diff=rflow - puf,
+         cart_pdiff=cart_diff / puf * 100,
+         rflow_pdiff=rflow_diff / puf * 100)
 
 
 

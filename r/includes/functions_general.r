@@ -407,7 +407,10 @@ get_pufsyn_taxplan_results <- function(stacked.pufsyn, taxplan.fn=NULL, prepare=
   # maybe use temp file?
   # tc.fn <- "tcbase.csv"
   # tc.fn <- paste0(basename(tempfile()), ".csv")
-  tc.fn <- paste0(runname, "_", str_remove(basename(taxplan.fn), ".json"), ".csv")
+  # tc.fn <- paste0(runname, "_", str_remove(basename(taxplan.fn), ".json"), ".csv")
+  if(is.null(taxplan.fn)) {
+    tc.fn <- paste0(runname, ".csv")
+  } else tc.fn <- paste0(runname, "_", str_remove(basename(taxplan.fn), ".json"), ".csv")
   write_csv(tc.base, paste0(globals$tc.dir, tc.fn))
   # write_csv(tc.base, tc.fn)
   

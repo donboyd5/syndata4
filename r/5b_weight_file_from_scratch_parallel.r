@@ -474,6 +474,7 @@ synprep <- readRDS(paste0(globals$tc.dir, sfname, "_rwprep.rds"))
 #.. Max's files start with synpuf ----
 # sfname <- "synpuf17"
 sfname <- "synpuf20"
+sfname <- "synpuf20_lowmatch"
 # get weight variable as it is needed below
 synprep <- readRDS(paste0(globals$tc.dir, sfname, "_rwprep.rds"))
 #.... here is the fix ----
@@ -777,6 +778,8 @@ popts <- list(.packages=packages, .export=xport)
 popts
 
 # 1:max(idfile$group)
+# Warning message:
+#   Unknown or uninitialised column: 'target'.
 
 a <- proc.time()
 warn <- options()$warn
@@ -961,7 +964,8 @@ objdf %>%
 
 objdf %>% 
   arrange(-obj) %>%
-  kable(digits=c(rep(0, 6), 2), format.args=list(big.mark = ','))
+  kable(digits=c(rep(0, 6), 2), format.args=list(big.mark = ',')) %>%
+  kable_styling()
 
 # 10 worst groups:
 #   | group| mgroup|      imin|      imax| pufcount| syncount|      obj|
@@ -999,7 +1003,7 @@ syn.agg <- syn.agg %>%
 
 # save the wtfs file; also save puf counterpart
 #sfname <- "synthpop10"
-sfname <- "synpuf20"
+sfname <- "synpuf20_lowmatch"
 saveRDS(syn.agg, paste0(globals$tc.dir, sfname, "_wfs", ".rds"))
 write_csv(syn.agg, paste0(globals$synd, "syntheses/", sfname, "_wfs", ".csv"))
 # saveRDS(syn.agg, paste0(globals$tc.dir, "synthpop5_all_wtfs_new", ".rds"))

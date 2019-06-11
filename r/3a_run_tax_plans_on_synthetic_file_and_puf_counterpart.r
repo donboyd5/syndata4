@@ -60,7 +60,8 @@ source("./r/includes/functions_general.r")
 #****************************************************************************************************
 
 # sfname <- "synpuf17"
-sfname <- "synpuf20"
+# sfname <- "synpuf20"
+sfname <- "synpuf20_lowmatch"
 
 syn.from.max <- read_csv(paste0(globals$synd, "syntheses/", sfname, ".csv"), 
                          col_types = cols(.default= col_double()), 
@@ -139,7 +140,8 @@ stack <- readRDS(paste0(globals$tc.dir, "pufsyn_stack/", sfname, "_stack.rds"))$
 
 #.. Max's files start with synpuf, not synthpop, and are stored as just a file, not part of a list ----
 # sfname <- "synpuf17"
-sfname <- "synpuf20"
+# sfname <- "synpuf20"
+sfname <- "synpuf20_lowmatch"
 stack <- readRDS(paste0(globals$tc.dir, "pufsyn_stack/", sfname, ".rds"))
 
 # Now that we have stack, we are ready to prepare a file for weighting ----

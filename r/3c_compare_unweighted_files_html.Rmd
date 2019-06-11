@@ -18,6 +18,14 @@ output:
   #   fig_width: 9
   #   toc: yes
   #   toc_depth: 5
+
+# to make a notebook visible from the web, do the following:
+# - commit latest changes to git and push to github
+# - view the notebook by appending it to this link: http://htmlpreview.github.io/
+# - for example, paste the following url into a browser:
+#     http://htmlpreview.github.io/?https://github.com/donboyd5/syndata4/blob/master/r/3c_compare_unweighted_files_html.nb.html
+
+
 ```
 
 

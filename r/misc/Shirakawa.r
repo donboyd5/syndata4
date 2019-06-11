@@ -365,3 +365,78 @@ e1071::skewness(x, type=2) # SAS and SPSS method; unbiased under normality
 e1071::skewness(x, type=3) # default - MINITAB and BMDP
 ??moments::skewness
 ??e1071::skewness
+
+
+
+#****************************************************************************************************
+#                Try some puf things ####
+#****************************************************************************************************
+ns <- function(df) {names(df) %>% sort}
+df <- read_csv(paste0("D:/Google Drive/synpuf/puf/", "puf2011.csv"), 
+               col_types = cols(.default= col_double()), 
+               n_max=-1)
+ns(df)
+vars <- c("RECID", "E00100", "E00200", "E00300", "E00400", "E00600", "E01500")
+hipuf <- df %>%  
+  filter(MARS==1, E00100 >= 200e3, !RECID %in% 999996:999999) %>%
+  dplyr::select(vars)
+ht(hipuf)
+
+stats <- hipuf %>%
+  gather(vname, value, -RECID) %>%
+  group_by(vname) %>%
+  summarise(n=n(),
+            nz=sum(value==0),
+            nnz=n - nz,
+            mean=mean(value), 
+            sd=sd(value), 
+            kurt=e1071::kurtosis(value, type=2),
+            skew=e1071::skewness(value, type=2))
+stats
+
+var <- "E00200"
+hipuf %>%
+  dplyr::select(RECID, value=var) %>%
+  ggplot(aes(value)) +
+  geom_density(size=1.5, colour="blue") +
+  theme_bw()
+
+
+tur <- c(1.0, 1.2, 1.1, 1.1, 2.4, 2.2, 2.6, 4.1, 5.0, 10.0, 4.0, 4.1, 4.2, 4.1, 5.1, 4.5, 5.0, 15.2, 10.0, 20.0, 1.1, 1.1, 1.2, 1.6, 2.2, 3.0, 4.0, 10.5)
+box = boxcox(tur ~ 1,              # Transform Turbidity as a single vector
+             lambda = seq(-6,6,0.1))      # Try values -6 to 6 by 0.1
+str(box)
+lambda <- tibble(lambda=box$x, loglik=box$y) %>%
+  top_n(1, loglik) %>% # get the largest log likelihood
+  .[["lambda"]]
+
+data.frame(x = c(10, 4, 1, 6, 3, 1, 1)) %>% top_n(2)
+
+bc <- tibble(rn=1:length(tur), tur, bctur=(tur ^ lambda - 1)/lambda)
+bc  %>%
+  gather(variable, value, -rn) %>%
+  ggplot(aes(value, colour=variable)) +
+  geom_density(size=1.5) +
+  theme_bw()
+
+getlam <- function(x){
+  box <- boxcox(x ~ 1, lambda = seq(-6, 6, 0.1))
+  lambda <- tibble(lambda=box$x, loglik=box$y) %>%
+    top_n(1, loglik) %>% # get the largest log likelihood
+    .[["lambda"]]
+  return(lambda)
+}
+bc <- hipuf %>%
+  # dplyr::select(RECID, E00200) %>%
+  gather(vname, value, -RECID) %>%
+  mutate(value=ifelse(value <=0, 1, value)) %>%
+  group_by(vname) %>%
+  summarise(n=n(),
+            nz=sum(value==0),
+            nnz=n - nz,
+            mean=mean(value), 
+            sd=sd(value), 
+            kurt=e1071::kurtosis(value, type=2),
+            skew=e1071::skewness(value, type=2),
+            lambda=getlam(value))
+bc

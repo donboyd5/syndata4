@@ -99,7 +99,8 @@ psum <- get_pufbase_sums()
 cartname <- "synthpop10_wfs.rds"
 cartstackname <- "synthpop10_wfs_stack.rds"
 
-rfname <- "synpuf20_wfs.rds"
+# rfname <- "synpuf20_wfs.rds"
+rfname <- "synpuf20_lowmatch_wfs.rds"
 
 cstack <- readRDS(paste0(globals$tc.dir, cartstackname))
 glimpse(cstack)
@@ -138,6 +139,7 @@ count(stack, ftype, msname) %>%
 # reform <- "EITC"
 # reform <- "Trump2013"
 # reform <- "rt5_2013"
+# rt4_rate28_2013
 # reform <- "brk4_2013"
 # reform <- "brk4_1k_2013"
 # reform <- "brk4_10k_2013"
@@ -148,9 +150,9 @@ count(stack, ftype, msname) %>%
 # tuition0320_2013
 # rt4_rate28_2013
 
-flabel <- "synth10_syn20"
+# flabel <- "synth10_syn20"
 # reforms <- c("rate_cut", "toprate", "Trump2013", "EITC")
-reforms <- c("rate_cut", "Trump2013", "toprate", "rt5_2013", "brk4_2013", "brk4_10k_2013", "reform4")
+reforms <- c("rate_cut", "Trump2013", "toprate", "rt5_2013", "rt4_rate28_2013", "brk4_2013", "brk4_10k_2013", "reform4")
 
 runtc <- function(reform, source.fn){
   taxplan.fn <- paste0(reform, ".json")
@@ -162,10 +164,11 @@ runtc <- function(reform, source.fn){
 # ONETIME run the baseline tax on the stacked file ----
 
 reform <- reforms[6]
-reform <- "brk4_1k_2013"
+reform <- "rate_cut"
 
 # source.fn <- "synth10syn20_small.csv" # DO NOT WRITE THIS TO DISK
-source.fn <- "synth10syn20.csv"
+# source.fn <- "synth10syn20.csv"
+source.fn <- "lowmatch.csv"
 
 
 # ONETIME for each new combination of files making up stack ----
@@ -227,8 +230,11 @@ setdiff(dedvars, names(stack))
 # c05800 taxbc plus AMT liability
 
 tcvars <- c("c00100", "standard", "c17000", "c18300", "c21060", "c04800", "taxbc", "c09600", "c05800")
-stack <- readRDS(paste0(globals$tc.dir, "synth10syn20_stack.rds"))
-stacktax <- readRDS(paste0(globals$tc.dir, "synth10syn20__output.rds"))
+#stack <- readRDS(paste0(globals$tc.dir, "synth10syn20_stack.rds"))
+#stacktax <- readRDS(paste0(globals$tc.dir, "synth10syn20__output.rds"))
+# lowmatch_rate_cut_output.rds
+stack <- readRDS(paste0(globals$tc.dir, "synpuf20_lowmatch_wfs_stack.rds"))
+stacktax <- readRDS(paste0(globals$tc.dir, "lowmatch__output.rds"))
 glimpse(stack)
 glimpse(stacktax)
 baseline <- stack %>%
@@ -239,11 +245,11 @@ baseline <- stack %>%
 
 
 ```{r tab_functions, include=FALSE}
-# "rate_cut"  "Trump2013" "toprate"   "rt5_2013"  "brk4_2013"
-reforms <- c("rate_cut", "Trump2013", "toprate", "rt5_2013", "brk4_2013", "reform4", "amtex_2013", "tuition0320_2013")
+# "rate_cut"  "Trump2013" "toprate"   "rt5_2013"  "brk4_2013" "rt4_rate28_2013"
+reforms <- c("rate_cut", "Trump2013", "toprate", "rt5_2013", "brk4_2013", "reform4", "amtex_2013", "tuition0320_2013", "rt4_rate28_2013")
 
-get_mrgdf <- function(reform){
-  refname <- paste0("synth10syn20_", reform, "_output.rds")
+get_mrgdf <- function(reform, refbase="synth10syn20"){
+  refname <- paste0(refbase, "_", reform, "_output.rds")
   refdf <- readRDS(paste0(globals$tc.dir, refname))
   
   mrgdf <- left_join(baseline,
@@ -345,6 +351,68 @@ tab_c05800_pdiffs <- function(diffs, pdigits=c(0, 0, rep(1, 7))){
 ```
 
 
+```{r low_match_functions}
+
+tab_c05800_lm <- function(diffs, pdigits=c(0, 0, rep(1, 7))) {
+  tab <- diffs %>%
+    select(reform_name, ftype, agirange, value=c05800) %>%
+    spread(ftype, value) %>%
+    mutate(syn.diff=syn - puf,
+           syn.pdiff=syn.diff / puf * 100) %>%
+    kable(caption="Tax before credits, baseline, $ billions",
+          digits=pdigits,
+          format.args=list(big.mark=",")) %>%
+    kable_styling(full_width = FALSE)
+  return(tab)
+}
+
+
+tab_c05800_reform_lm <- function(diffs, pdigits=c(0, 0, rep(1, 7))) {
+  tab <- diffs %>%
+    select(reform_name, ftype, agirange, value=c05800.reform) %>%
+    spread(ftype, value) %>%
+    mutate(cart.diff=cart - puf,
+           rf.diff=rf - puf,
+           cart.pdiff=cart.diff / puf * 100,
+           rf.pdiff=rf.diff / puf * 100) %>%
+    kable(caption="Tax before credits, reform, $ billions",
+          digits=pdigits,
+          format.args=list(big.mark=",")) %>%
+    kable_styling(full_width = FALSE)
+  return(tab)
+}
+
+
+tab_c05800_diffs_lm <- function(diffs, pdigits=c(0, 0, rep(1, 7))) {
+  tab <- diffs %>%
+    select(reform_name, ftype, agirange, value=diff) %>%
+    spread(ftype, value) %>%
+    mutate(cart.diff=cart - puf,
+           rf.diff=rf - puf,
+           cart.pdiff=cart.diff / puf * 100,
+           rf.pdiff=rf.diff / puf * 100) %>%
+    kable(caption="Change in tax before credits, $ billions",
+          digits=pdigits,
+          format.args=list(big.mark=",")) %>%
+    kable_styling(full_width = FALSE)
+  return(tab)
+}
+
+tab_c05800_pdiffs_lm <- function(diffs, pdigits=c(0, 0, rep(1, 7))){
+  tab <- diffs %>%
+    select(reform_name, ftype, agirange, value=pdiff) %>%
+    spread(ftype, value) %>%
+    mutate(cart.diff=cart - puf,
+           rf.diff=rf - puf) %>%
+    kable(caption="% change in tax before credits",
+          digits=pdigits) %>%
+    kable_styling(full_width = FALSE)
+  return(tab)
+}
+```
+
+
+
 # Rate cut analysis
 ```{r , include=FALSE}
 # put this before each run
@@ -380,6 +448,49 @@ tab_c05800_diffs(diffs)
 ```
 
 ## Percentage change in tax before credits, reform vs. baseline
+Table shows percentage change from baseline to reform, plus cart and rf % change minus puf % change
+```{r rows.print=20}
+tab_c05800_pdiffs(diffs)
+```
+
+
+
+
+# Rate cut analysis -- lowmatch file
+```{r , include=FALSE}
+# put this before each run
+reform <- "rate_cut"
+# reform <- "reform4"
+mrgdf <- get_mrgdf(reform, "lowmatch")
+diffs <- get_diffs(mrgdf)
+```
+
+
+## Tax before credits, baseline -- lowmatch file
+Table shows baseline amount in $ billions, cart and rf minus puf, and cart and rf % difference from puf
+```{r rows.print=20}
+# tab_taxbc(diffs)
+tab_c05800_lm(diffs)
+
+```
+
+
+## Tax before credits, reform -- lowmatch file
+Table shows reform amount in $ billions, cart and rf minus puf, and cart and rf % difference from puf
+```{r rows.print=20}
+# tab_taxbc_reform(diffs)
+tab_c05800_reform(diffs)
+
+```
+
+
+## Change in tax before credits, reform vs. baseline -- lowmatch file
+Table shows change from puf to cart and rf in $ billions, cart and rf change minus puf change, and % difference of cart and rf $ changes from puf $ change
+```{r rows.print=20}
+tab_c05800_diffs(diffs)
+```
+
+## Percentage change in tax before credits, reform vs. baseline -- lowmatch file
 Table shows percentage change from baseline to reform, plus cart and rf % change minus puf % change
 ```{r rows.print=20}
 tab_c05800_pdiffs(diffs)
